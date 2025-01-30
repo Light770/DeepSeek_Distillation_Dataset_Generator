@@ -138,9 +138,7 @@ class ReasoningDatasetGenerator:
         self.output_parser = StructuredOutputParser.from_response_schemas(self.response_schemas)
         
     def _create_prompt_template(self, domain: str = "general") -> PromptTemplate:
-        """
-        Create the prompt template for generating reasoning examples.
-        """
+        """Create the prompt template for generating reasoning examples."""
         domain_prompts = {
             "math": """Generate a mathematical reasoning problem that requires:
 - Clear numerical or algebraic manipulation
@@ -184,24 +182,23 @@ Important formatting requirements:
 Your response MUST be valid JSON wrapped in ```json code blocks:
 
 ```json
-{
+{{
     "problem": "The problem statement",
     "step_by_step": "1. First step\\n2. Second step\\n3. Third step",
     "final_answer": "The final answer",
     "confidence": 8,
     "verification": "Verification of the steps and answer"
-}
+}}
 ```
 
 Generate a single, high-quality example with careful reasoning."""
-        
+
         return PromptTemplate(
             template=template,
-            input_variables=[],
+            input_variables=[],  # No input variables needed
             partial_variables={
-                "format_instructions": self.output_parser.get_format_instructions(),
-                "format_guidelines": format_guidelines,
-                "domain_prompt": domain_prompts.get(domain, domain_prompts["general"])
+                "domain_prompt": domain_prompts.get(domain, domain_prompts["general"]),
+                "format_guidelines": format_guidelines
             }
         )
     
@@ -274,15 +271,22 @@ Generate a single, high-quality example with careful reasoning."""
         for example_num in tqdm(range(num_examples)):
             retries = 0
             success = False
+            response_text = ""  # Initialize response_text here
             
             while retries < max_retries and not success:
                 try:
                     # 1. Generate API request
                     system_prompt = "You are an expert reasoning assistant that breaks down problems step by step."
-                    full_prompt = prompt.format()
+                    try:
+                        full_prompt = prompt.format()  # No arguments needed now
+                    except Exception as prompt_error:
+                        logger.error(f"Error formatting prompt: {str(prompt_error)}")
+                        raise ValueError(f"Prompt formatting failed: {str(prompt_error)}")
                     
                     if not full_prompt.strip():
                         raise ValueError("Empty prompt generated")
+                        
+                    logger.debug(f"Generated prompt:\n{full_prompt}")
                     
                     # 2. Make API call
                     try:
