@@ -4,6 +4,7 @@ import os
 import time
 from typing import List, Dict, Tuple
 
+import numpy as np
 import replicate
 from tqdm import tqdm
 
@@ -109,7 +110,7 @@ class ReasoningDatasetValidator:
 class ReasoningDatasetGenerator:
     """Generates reasoning examples using the Replicate API."""
     
-    def __init__(self, api_key: str, model: str = "deepseek-ai/deepseek-r1") -> None:
+    def __init__(self, api_key: str, model: str = "deepseek-ai/deepseek-r1", domain: str = "general") -> None:
         """
         Initialize the reasoning dataset generator.
         
@@ -122,12 +123,13 @@ class ReasoningDatasetGenerator:
         # API key is handled by environment variable
         self.model = DEFAULT_MODEL_NAME
         
-        # Initialize model
+        # Initialize model and domain
         self.model = model
+        self.domain = domain
         
     def _generate_prompt(self, domain: str = "general") -> str:
         """Generate the complete prompt for the model."""
-        domain_prompt = DOMAIN_PROMPTS.get(domain, DOMAIN_PROMPTS["general"])
+        domain_prompt = DOMAIN_PROMPTS.get(self.domain, DOMAIN_PROMPTS["general"])
         return f"{SYSTEM_PROMPT}\n\n{domain_prompt}"
 
     def _parse_response(self, response_text: str) -> Dict:
