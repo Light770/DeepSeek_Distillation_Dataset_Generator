@@ -206,47 +206,57 @@ Generate a single, high-quality example with careful reasoning."""
         )
     
     def _extract_and_parse_json(self, response_text: str) -> dict:
-        """Helper method to extract and parse JSON from response text."""
-        logger.debug(f"Raw response text:\n{response_text}")
+        """Extract and parse JSON with detailed error handling."""
+        if not response_text:
+            raise ValueError("Empty response text")
+            
+        logger.debug(f"Attempting to parse response of length {len(response_text)}")
         
+        json_text = None
+        errors = []
+        
+        # Try multiple extraction methods
         try:
-            # First try: Look for JSON between code blocks
+            # Method 1: ```json blocks
             if "```json" in response_text:
                 parts = response_text.split("```json")
                 if len(parts) > 1:
                     json_text = parts[1].split("```")[0].strip()
                     return json.loads(json_text)
-            
-            # Second try: Look for any code blocks
+        except json.JSONDecodeError as e:
+            errors.append(f"Method 1 failed: {str(e)}")
+        
+        try:
+            # Method 2: ``` blocks
             if "```" in response_text:
                 parts = response_text.split("```")
                 if len(parts) > 1:
                     json_text = parts[1].strip()
                     return json.loads(json_text)
-            
-            # Third try: Look for JSON-like structure
+        except json.JSONDecodeError as e:
+            errors.append(f"Method 2 failed: {str(e)}")
+        
+        try:
+            # Method 3: Find JSON structure
             start_idx = response_text.find("{")
             end_idx = response_text.rfind("}") + 1
             if start_idx >= 0 and end_idx > start_idx:
                 json_text = response_text[start_idx:end_idx]
                 return json.loads(json_text)
-                
-            # Fourth try: Clean up and try parsing the whole response
-            cleaned_text = response_text.strip()
-            if cleaned_text.startswith('"'):
-                cleaned_text = cleaned_text[1:]
-            if cleaned_text.endswith('"'):
-                cleaned_text = cleaned_text[:-1]
-            return json.loads(cleaned_text)
-            
         except json.JSONDecodeError as e:
-            logger.error(f"JSON parsing error: {str(e)}")
-            logger.debug(f"Failed text:\n{response_text}")
-            raise ValueError(f"Could not parse JSON response: {str(e)}")
+            errors.append(f"Method 3 failed: {str(e)}")
+        
+        # If all methods failed, raise error with details
+        error_msg = "\n".join(errors)
+        logger.error(f"All JSON parsing methods failed:\n{error_msg}")
+        raise ValueError(f"Could not parse JSON response. Attempts failed with: {error_msg}")
 
     def generate_examples(self, num_examples: int, output_file: str, domain: str = "general", 
                          delay: float = DEFAULT_DELAY, max_retries: int = MAX_RETRIES) -> Tuple[List[Dict], Dict]:
-        """Generate multiple reasoning examples and save them to a file."""
+        """Generate multiple reasoning examples with robust error handling."""
+        if num_examples <= 0:
+            raise ValueError("num_examples must be positive")
+            
         prompt = self._create_prompt_template(domain)
         examples = []
         validator = ReasoningDatasetValidator()
@@ -261,26 +271,35 @@ Generate a single, high-quality example with careful reasoning."""
         
         logger.info(f"Generating {num_examples} reasoning examples...")
         
-        for _ in tqdm(range(num_examples)):
+        for example_num in tqdm(range(num_examples)):
             retries = 0
-            while retries < max_retries:
-                response_text = ""  # Initialize response_text here
+            success = False
+            
+            while retries < max_retries and not success:
                 try:
-                    # Generate example
+                    # 1. Generate API request
                     system_prompt = "You are an expert reasoning assistant that breaks down problems step by step."
                     full_prompt = prompt.format()
-            
-                    # Initialize API call
-                    prediction = replicate.run(
-                        self.model,
-                        input={
-                            "prompt": f"{system_prompt}\n\n{full_prompt}",
-                            "temperature": 0.7,
-                            "max_tokens": 2000,
-                            "top_p": 0.9,
-                            "top_k": 50
-                        }
-                    )
+                    
+                    if not full_prompt.strip():
+                        raise ValueError("Empty prompt generated")
+                    
+                    # 2. Make API call
+                    try:
+                        prediction = replicate.run(
+                            self.model,
+                            input={
+                                "prompt": f"{system_prompt}\n\n{full_prompt}",
+                                "temperature": 0.7,
+                                "max_tokens": 2000,
+                                "top_p": 0.9,
+                                "top_k": 50
+                            }
+                        )
+                    except Exception as api_error:
+                        logger.error(f"API call failed: {str(api_error)}")
+                        generation_stats['api_errors'] += 1
+                        raise
                     
                     # Collect the complete response
                     response_text = ""
@@ -349,17 +368,29 @@ def main():
         # Load API token from environment variable
         api_token = os.getenv("REPLICATE_API_TOKEN")
         if not api_token:
+            logger.error("Missing API token")
             raise ValueError("Please set the REPLICATE_API_TOKEN environment variable")
         
         # Initialize generator
         generator = ReasoningDatasetGenerator(api_token)
         
-        # Generate dataset
-        logger.info(f"Generating {DEFAULT_NUM_EXAMPLES} reasoning examples...")
+        # Verify output directory exists
+        output_dir = os.path.dirname(DEFAULT_OUTPUT_FILE)
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            
+        # Generate dataset with progress tracking
+        logger.info(f"Starting generation of {DEFAULT_NUM_EXAMPLES} examples...")
         examples, stats = generator.generate_examples(
             num_examples=DEFAULT_NUM_EXAMPLES,
             output_file=DEFAULT_OUTPUT_FILE
         )
+        
+        if not examples:
+            logger.error("No examples were generated successfully")
+            return
+            
+        logger.info(f"Generation complete. Stats: {stats}")
         
         print(f"Dataset generated and saved to {DEFAULT_OUTPUT_FILE}")
         print(f"Generation Statistics:")
