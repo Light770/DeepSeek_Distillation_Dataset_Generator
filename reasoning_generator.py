@@ -1,4 +1,4 @@
-from openai import OpenAI
+import replicate
 from langchain.prompts import PromptTemplate
 from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 import json
@@ -8,19 +8,15 @@ import time
 from tqdm import tqdm
 
 class ReasoningDatasetGenerator:
-    def __init__(self, api_key: str, model_name: str = "deepseek-chat"):
+    def __init__(self, api_key: str):
         """
         Initialize the reasoning dataset generator.
         
         Args:
-            api_key (str): DeepSeek API key
-            model_name (str): Model name to use (default: deepseek-chat)
+            api_key (str): Replicate API token
         """
-        self.client = OpenAI(
-            api_key=api_key,
-            base_url="https://api.deepseek.com"
-        )
-        self.model_name = model_name
+        # API key is handled by environment variable
+        self.model = "deepseek-ai/deepseek-r1"
         
         # Define the output schema for structured responses
         self.response_schemas = [
@@ -71,16 +67,18 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
         for _ in tqdm(range(num_examples)):
             try:
                 # Generate example
-                response = self.client.chat.completions.create(
-                    model=self.model_name,
-                    messages=[
-                        {"role": "system", "content": "You are an expert reasoning assistant that breaks down problems step by step."},
-                        {"role": "user", "content": prompt.format()}
-                    ],
-                    stream=False
-                )
+                system_prompt = "You are an expert reasoning assistant that breaks down problems step by step."
+                full_prompt = f"{system_prompt}\n\n{prompt.format()}"
                 
-                parsed_response = self.output_parser.parse(response.choices[0].message.content)
+                # Collect the streamed response
+                response_text = ""
+                for event in replicate.stream(
+                    self.model,
+                    input={"prompt": full_prompt}
+                ):
+                    response_text += str(event)
+                
+                parsed_response = self.output_parser.parse(response_text)
                 examples.append(parsed_response)
                 
                 # Save after each successful generation
@@ -97,10 +95,10 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
         return examples
 
 def main():
-    # Load API key from environment variable
-    api_key = os.getenv("DEEPSEEK_API_KEY")
-    if not api_key:
-        raise ValueError("Please set the DEEPSEEK_API_KEY environment variable")
+    # Load API token from environment variable
+    api_token = os.getenv("REPLICATE_API_TOKEN")
+    if not api_token:
+        raise ValueError("Please set the REPLICATE_API_TOKEN environment variable")
     
     # Initialize generator
     generator = ReasoningDatasetGenerator(api_key)
