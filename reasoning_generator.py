@@ -3,9 +3,84 @@ from langchain.prompts import PromptTemplate
 from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 import json
 import os
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import time
 from tqdm import tqdm
+import numpy as np
+
+class ReasoningDatasetValidator:
+    """Validates reasoning examples and calculates quality metrics."""
+    
+    def validate_reasoning_steps(self, example: Dict) -> Tuple[bool, str]:
+        """
+        Validate coherence of reasoning steps.
+        
+        Returns:
+            Tuple[bool, str]: (is_valid, error_message)
+        """
+        if not example.get('step_by_step'):
+            return False, "Missing reasoning steps"
+            
+        steps = example['step_by_step'].split('\n')
+        if len(steps) < 2:
+            return False, "Too few reasoning steps"
+            
+        # Verify steps are properly ordered
+        for i, step in enumerate(steps, 1):
+            if not any(str(i) in step[:10] for i in range(1, len(steps)+1)):
+                return False, f"Step {i} not properly numbered"
+                
+        return True, ""
+    
+    def validate_format(self, example: Dict) -> Tuple[bool, str]:
+        """
+        Verify output format compliance.
+        
+        Returns:
+            Tuple[bool, str]: (is_valid, error_message)
+        """
+        required_fields = ['problem', 'step_by_step', 'final_answer', 
+                         'confidence', 'verification']
+        
+        for field in required_fields:
+            if field not in example:
+                return False, f"Missing required field: {field}"
+                
+        try:
+            confidence = float(example['confidence'])
+            if not 0 <= confidence <= 10:
+                return False, "Confidence score out of range"
+        except ValueError:
+            return False, "Invalid confidence score format"
+            
+        return True, ""
+    
+    def calculate_quality_metrics(self, examples: List[Dict]) -> Dict:
+        """
+        Calculate quality metrics for dataset.
+        
+        Returns:
+            Dict: Quality metrics
+        """
+        metrics = {
+            'total_examples': len(examples),
+            'avg_confidence': np.mean([float(ex['confidence']) for ex in examples]),
+            'avg_steps': np.mean([len(ex['step_by_step'].split('\n')) for ex in examples]),
+            'format_valid': 0,
+            'steps_valid': 0
+        }
+        
+        for ex in examples:
+            format_valid, _ = self.validate_format(ex)
+            steps_valid, _ = self.validate_reasoning_steps(ex)
+            
+            metrics['format_valid'] += int(format_valid)
+            metrics['steps_valid'] += int(steps_valid)
+            
+        metrics['format_valid_pct'] = metrics['format_valid'] / len(examples) * 100
+        metrics['steps_valid_pct'] = metrics['steps_valid'] / len(examples) * 100
+        
+        return metrics
 
 class ReasoningDatasetGenerator:
     def __init__(self, api_key: str):
@@ -29,17 +104,44 @@ class ReasoningDatasetGenerator:
         
         self.output_parser = StructuredOutputParser.from_response_schemas(self.response_schemas)
         
-    def _create_prompt_template(self) -> PromptTemplate:
-        """Create the prompt template for generating reasoning examples."""
-        template = """Generate a training example for a reasoning model with the following components:
+    def _create_prompt_template(self, domain: str = "general") -> PromptTemplate:
+        """
+        Create the prompt template for generating reasoning examples.
+        
+        Args:
+            domain (str): Reasoning domain ("math", "logic", "analysis", or "general")
+        """
+        domain_prompts = {
+            "math": """Generate a mathematical reasoning problem that requires:
+- Clear numerical or algebraic manipulation
+- Multiple solution steps
+- Application of mathematical concepts
+- Careful attention to order of operations""",
+            
+            "logic": """Generate a logical reasoning problem that involves:
+- Deductive or inductive reasoning
+- If-then relationships
+- Logical operators or set theory
+- Clear premises and conclusions""",
+            
+            "analysis": """Generate an analytical problem that requires:
+- Breaking down complex information
+- Identifying patterns or relationships
+- Drawing evidence-based conclusions
+- Systematic evaluation of options""",
+            
+            "general": """Generate a challenging problem that requires careful reasoning (math, logic, or analysis)"""
+        }
+        
+        template = f"""Generate a training example for a reasoning model with the following components:
 
-1. Create a challenging problem that requires careful reasoning (math, logic, or analysis)
+1. {domain_prompts.get(domain, domain_prompts["general"])}
 2. Provide a detailed step-by-step reasoning process
 3. State the final answer clearly
 4. Assign a confidence score (0-10) based on the reasoning reliability
 5. Include a verification step to check the reasoning
 
-{format_instructions}
+{{format_instructions}}
 
 Generate a single, high-quality example that demonstrates careful reasoning and problem-solving."""
         
@@ -49,7 +151,8 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
             partial_variables={"format_instructions": self.output_parser.get_format_instructions()}
         )
     
-    def generate_examples(self, num_examples: int, output_file: str, delay: float = 1.0) -> List[Dict]:
+    def generate_examples(self, num_examples: int, output_file: str, domain: str = "general", 
+                         delay: float = 1.0) -> Tuple[List[Dict], Dict]:
         """
         Generate multiple reasoning examples and save them to a file.
         
@@ -61,8 +164,16 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
         Returns:
             List[Dict]: Generated examples
         """
-        prompt = self._create_prompt_template()
+        prompt = self._create_prompt_template(domain)
         examples = []
+        validator = ReasoningDatasetValidator()
+        
+        generation_stats = {
+            'attempts': 0,
+            'successes': 0,
+            'validation_failures': 0,
+            'api_errors': 0
+        }
         
         for _ in tqdm(range(num_examples)):
             try:
@@ -79,9 +190,20 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
                     response_text += str(event)
                 
                 parsed_response = self.output_parser.parse(response_text)
-                examples.append(parsed_response)
+                # Validate the generated example
+                format_valid, format_msg = validator.validate_format(parsed_response)
+                steps_valid, steps_msg = validator.validate_reasoning_steps(parsed_response)
+                
+                if format_valid and steps_valid:
+                    examples.append(parsed_response)
+                    generation_stats['successes'] += 1
+                else:
+                    generation_stats['validation_failures'] += 1
+                    print(f"Validation failed: {format_msg} {steps_msg}")
+                    continue
                 
                 # Save after each successful generation
+                generation_stats['attempts'] += 1
                 with open(output_file, 'w') as f:
                     json.dump(examples, f, indent=2)
                 
@@ -90,9 +212,14 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
                 
             except Exception as e:
                 print(f"Error generating example: {str(e)}")
+                generation_stats['api_errors'] += 1
                 continue
+        
+        # Calculate final quality metrics
+        quality_metrics = validator.calculate_quality_metrics(examples)
+        generation_stats.update(quality_metrics)
                 
-        return examples
+        return examples, generation_stats
 
 def main():
     # Load API token from environment variable
@@ -108,10 +235,19 @@ def main():
     output_file = "reasoning_training_data.json"
     
     print(f"Generating {num_examples} reasoning examples...")
-    examples = generator.generate_examples(num_examples, output_file)
+    examples, stats = generator.generate_examples(num_examples, output_file)
     
     print(f"Dataset generated and saved to {output_file}")
-    print(f"Total examples generated: {len(examples)}")
+    print(f"Generation Statistics:")
+    print(f"- Total attempts: {stats['attempts']}")
+    print(f"- Successful generations: {stats['successes']}")
+    print(f"- Validation failures: {stats['validation_failures']}")
+    print(f"- API errors: {stats['api_errors']}")
+    print(f"\nQuality Metrics:")
+    print(f"- Format valid: {stats['format_valid_pct']:.1f}%")
+    print(f"- Steps valid: {stats['steps_valid_pct']:.1f}%")
+    print(f"- Average confidence: {stats['avg_confidence']:.1f}")
+    print(f"- Average steps: {stats['avg_steps']:.1f}")
 
 if __name__ == "__main__":
     main()
