@@ -140,9 +140,6 @@ class ReasoningDatasetGenerator:
     def _create_prompt_template(self, domain: str = "general") -> PromptTemplate:
         """
         Create the prompt template for generating reasoning examples.
-        
-        Args:
-            domain (str): Reasoning domain ("math", "logic", "analysis", or "general")
         """
         domain_prompts = {
             "math": """Generate a mathematical reasoning problem that requires:
@@ -167,17 +164,17 @@ class ReasoningDatasetGenerator:
         }
         
         format_guidelines = """
-        Important formatting requirements:
-        1. Number each reasoning step clearly (e.g., "1.", "2.", etc.)
-        2. Provide confidence score as a single number between 0-10
-        3. Ensure each step follows from the previous one
-        4. Include clear verification at the end
-        """
+Important formatting requirements:
+1. Number each reasoning step clearly (e.g., "1.", "2.", etc.)
+2. Provide confidence score as a single number between 0-10
+3. Ensure each step follows from the previous one
+4. Include clear verification at the end
+"""
         
-        template = f"""Generate a training example for a reasoning model with the following components:
-        {format_guidelines}
+        template = """Generate a training example for a reasoning model with the following components:
+{format_guidelines}
 
-1. {domain_prompts.get(domain, domain_prompts["general"])}
+1. {domain_prompt}
 2. Provide a detailed step-by-step reasoning process
 3. State the final answer clearly
 4. Assign a confidence score (0-10) based on the reasoning reliability
@@ -192,47 +189,23 @@ IMPORTANT: Your response must be valid JSON that matches this exact format:
     "verification": "Verification of the steps and answer"
 }}
 
-{{format_instructions}}
+{format_instructions}
 
 Generate a single, high-quality example that demonstrates careful reasoning and problem-solving."""
         
         return PromptTemplate(
             template=template,
             input_variables=[],
-            partial_variables={"format_instructions": self.output_parser.get_format_instructions()}
+            partial_variables={
+                "format_instructions": self.output_parser.get_format_instructions(),
+                "format_guidelines": format_guidelines,
+                "domain_prompt": domain_prompts.get(domain, domain_prompts["general"])
+            }
         )
     
-    def generate_examples(
-        self,
-        num_examples: int,
-        output_file: str,
-        domain: str = "general",
-        delay: float = DEFAULT_DELAY,
-        max_retries: int = MAX_RETRIES
-    ) -> Tuple[List[Dict], Dict]:
-        """
-        Generate multiple reasoning examples and save them to a file.
-        
-        Args:
-            num_examples (int): Number of examples to generate
-            output_file (str): Path to save the dataset
-            domain (str, optional): Type of reasoning problem. Defaults to "general"
-            delay (float, optional): Delay between API calls in seconds. Defaults to DEFAULT_DELAY
-            max_retries (int, optional): Maximum number of retry attempts. Defaults to MAX_RETRIES
-            
-        Returns:
-            Tuple[List[Dict], Dict]: Generated examples and generation statistics
-            
-        Raises:
-            ValueError: If input parameters are invalid
-        """
-        # Input validation
-        if num_examples <= 0:
-            raise ValueError("num_examples must be positive")
-        if delay < 0:
-            raise ValueError("delay must be non-negative")
-        if max_retries < 1:
-            raise ValueError("max_retries must be at least 1")
+    def generate_examples(self, num_examples: int, output_file: str, domain: str = "general", 
+                         delay: float = DEFAULT_DELAY, max_retries: int = MAX_RETRIES) -> Tuple[List[Dict], Dict]:
+        """Generate multiple reasoning examples and save them to a file."""
         prompt = self._create_prompt_template(domain)
         examples = []
         validator = ReasoningDatasetValidator()
@@ -245,13 +218,16 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
             'validation_details': []
         }
         
+        logger.info(f"Generating {num_examples} reasoning examples...")
+        
         for _ in tqdm(range(num_examples)):
             retries = 0
             while retries < max_retries:
+                response_text = ""  # Initialize response_text here
                 try:
                     # Generate example
                     system_prompt = "You are an expert reasoning assistant that breaks down problems step by step."
-                    full_prompt = f"{system_prompt}\n\n{prompt.format()}"
+                    full_prompt = prompt.format()  # Remove the extra formatting
             
                     # Collect the streamed response
                     response_text = ""
@@ -311,12 +287,13 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
                 
                 except Exception as e:
                     logger.error(f"Error generating example: {str(e)}")
-                    logger.debug(f"Failed response:\n{response_text}")
+                    if response_text:  # Only log response_text if it exists
+                        logger.debug(f"Failed response:\n{response_text}")
                     generation_stats['api_errors'] += 1
                     retries += 1
                     if retries < max_retries:
                         logger.info(f"Retrying ({retries}/{max_retries})...")
-                        time.sleep(delay)  # Add delay before retry
+                        time.sleep(delay)
                         continue
                     break
             
