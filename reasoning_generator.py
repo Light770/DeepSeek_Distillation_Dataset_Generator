@@ -205,6 +205,45 @@ Generate a single, high-quality example with careful reasoning."""
             }
         )
     
+    def _extract_and_parse_json(self, response_text: str) -> dict:
+        """Helper method to extract and parse JSON from response text."""
+        logger.debug(f"Raw response text:\n{response_text}")
+        
+        try:
+            # First try: Look for JSON between code blocks
+            if "```json" in response_text:
+                parts = response_text.split("```json")
+                if len(parts) > 1:
+                    json_text = parts[1].split("```")[0].strip()
+                    return json.loads(json_text)
+            
+            # Second try: Look for any code blocks
+            if "```" in response_text:
+                parts = response_text.split("```")
+                if len(parts) > 1:
+                    json_text = parts[1].strip()
+                    return json.loads(json_text)
+            
+            # Third try: Look for JSON-like structure
+            start_idx = response_text.find("{")
+            end_idx = response_text.rfind("}") + 1
+            if start_idx >= 0 and end_idx > start_idx:
+                json_text = response_text[start_idx:end_idx]
+                return json.loads(json_text)
+                
+            # Fourth try: Clean up and try parsing the whole response
+            cleaned_text = response_text.strip()
+            if cleaned_text.startswith('"'):
+                cleaned_text = cleaned_text[1:]
+            if cleaned_text.endswith('"'):
+                cleaned_text = cleaned_text[:-1]
+            return json.loads(cleaned_text)
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON parsing error: {str(e)}")
+            logger.debug(f"Failed text:\n{response_text}")
+            raise ValueError(f"Could not parse JSON response: {str(e)}")
+
     def generate_examples(self, num_examples: int, output_file: str, domain: str = "general", 
                          delay: float = DEFAULT_DELAY, max_retries: int = MAX_RETRIES) -> Tuple[List[Dict], Dict]:
         """Generate multiple reasoning examples and save them to a file."""
@@ -249,51 +288,15 @@ Generate a single, high-quality example with careful reasoning."""
                         if item is not None:
                             response_text += str(item)
 
-                    # Clean up the response text
-                    response_text = response_text.strip()
-                    logger.debug(f"Raw response:\n{response_text}")
-
-                    # Clean and extract JSON
-                    response_text = response_text.strip()
-                    logger.debug(f"Raw response:\n{response_text}")
-
-                    try:
-                        # Try to find JSON in the response
-                        if "```json" in response_text:
-                            json_text = response_text.split("```json")[1].split("```")[0].strip()
-                        elif "```" in response_text:
-                            json_text = response_text.split("```")[1].split("```")[0].strip()
-                        else:
-                            # Try to find JSON-like structure
-                            start_idx = response_text.find("{")
-                            end_idx = response_text.rfind("}") + 1
-                            if start_idx >= 0 and end_idx > start_idx:
-                                json_text = response_text[start_idx:end_idx]
-                            else:
-                                raise ValueError("No JSON structure found in response")
-
-                        # Parse the extracted JSON
-                        parsed_response = json.loads(json_text)
-                        
-                        # Validate required fields
-                        required_fields = ['problem', 'step_by_step', 'final_answer', 'confidence', 'verification']
-                        missing_fields = [field for field in required_fields if field not in parsed_response]
-                        
-                        if missing_fields:
-                            raise ValueError(f"Missing required fields: {missing_fields}")
-                    except Exception as parse_error:
-                        logger.error(f"Parsing error: {str(parse_error)}")
-                        logger.debug(f"Failed to parse:\n{response_text}")
-                        # Add basic response cleaning
-                        if "```json" in response_text:
-                            # Extract JSON if it's in a code block
-                            json_text = response_text.split("```json")[1].split("```")[0]
-                            try:
-                                parsed_response = json.loads(json_text)
-                            except json.JSONDecodeError:
-                                raise ValueError("Failed to parse JSON from code block")
-                        else:
-                            raise ValueError("Invalid response format")
+                    # Parse the response using our helper method
+                    parsed_response = self._extract_and_parse_json(response_text)
+                    
+                    # Validate required fields
+                    required_fields = ['problem', 'step_by_step', 'final_answer', 'confidence', 'verification']
+                    missing_fields = [field for field in required_fields if field not in parsed_response]
+                    
+                    if missing_fields:
+                        raise ValueError(f"Missing required fields: {missing_fields}")
                     # Validate the generated example
                     format_valid, format_msg = validator.validate_format(parsed_response)
                     steps_valid, steps_msg = validator.validate_reasoning_steps(parsed_response)
