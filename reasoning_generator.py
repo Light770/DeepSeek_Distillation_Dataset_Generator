@@ -202,12 +202,12 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
                     system_prompt = "You are an expert reasoning assistant that breaks down problems step by step."
                     full_prompt = f"{system_prompt}\n\n{prompt.format()}"
                 
-                # Collect the streamed response
-                response_text = ""
-                for event in replicate.stream(
-                    self.model,
-                    input={"prompt": full_prompt}
-                ):
+                    # Collect the streamed response
+                    response_text = ""
+                    for event in replicate.stream(
+                        self.model,
+                        input={"prompt": full_prompt}
+                    ):
                     response_text += str(event)
                 
                 parsed_response = self.output_parser.parse(response_text)
