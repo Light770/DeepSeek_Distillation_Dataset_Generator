@@ -216,7 +216,7 @@ Your response MUST be valid JSON wrapped in ```json code blocks:
 
 Generate a single, high-quality example with careful reasoning."""
 
-        domain_prompt = DOMAIN_PROMPTS.get(domain, DOMAIN_PROMPTS["general"])
+        domain_prompt = DOMAIN_PROMPTS.get(self.domain, DOMAIN_PROMPTS["general"])
         return f"{template}\n\n{domain_prompt}\n\n{format_guidelines}"
     
     def _extract_and_parse_json(self, response_text: str) -> dict:
