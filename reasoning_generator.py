@@ -1,12 +1,28 @@
+import json
+import logging
+import os
+import time
+from typing import List, Dict, Tuple
+
+import numpy as np
 import replicate
+from tqdm import tqdm
 from langchain.prompts import PromptTemplate
 from langchain.output_parsers import StructuredOutputParser, ResponseSchema
-import json
-import os
-from typing import List, Dict, Tuple
-import time
-from tqdm import tqdm
-import numpy as np
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Constants
+DEFAULT_MODEL_NAME = "deepseek-ai/deepseek-r1"
+DEFAULT_NUM_EXAMPLES = 50
+DEFAULT_OUTPUT_FILE = "reasoning_training_data.json"
+DEFAULT_DELAY = 1.0
+MAX_RETRIES = 3
 
 class ReasoningDatasetValidator:
     """Validates reasoning examples and calculates quality metrics."""
@@ -92,15 +108,23 @@ class ReasoningDatasetValidator:
         return metrics
 
 class ReasoningDatasetGenerator:
-    def __init__(self, api_key: str):
+    # Class variables with type hints
+    model: str
+    response_schemas: List[ResponseSchema]
+    output_parser: StructuredOutputParser
+
+    def __init__(self, api_key: str) -> None:
         """
         Initialize the reasoning dataset generator.
         
         Args:
             api_key (str): Replicate API token
+            
+        Raises:
+            ValueError: If API token is invalid
         """
         # API key is handled by environment variable
-        self.model = "deepseek-ai/deepseek-r1"
+        self.model = DEFAULT_MODEL_NAME
         
         # Define the output schema for structured responses
         self.response_schemas = [
@@ -169,19 +193,37 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
             partial_variables={"format_instructions": self.output_parser.get_format_instructions()}
         )
     
-    def generate_examples(self, num_examples: int, output_file: str, domain: str = "general", 
-                         delay: float = 1.0, max_retries: int = 3) -> Tuple[List[Dict], Dict]:
+    def generate_examples(
+        self,
+        num_examples: int,
+        output_file: str,
+        domain: str = "general",
+        delay: float = DEFAULT_DELAY,
+        max_retries: int = MAX_RETRIES
+    ) -> Tuple[List[Dict], Dict]:
         """
         Generate multiple reasoning examples and save them to a file.
         
         Args:
             num_examples (int): Number of examples to generate
             output_file (str): Path to save the dataset
-            delay (float): Delay between API calls in seconds
+            domain (str, optional): Type of reasoning problem. Defaults to "general"
+            delay (float, optional): Delay between API calls in seconds. Defaults to DEFAULT_DELAY
+            max_retries (int, optional): Maximum number of retry attempts. Defaults to MAX_RETRIES
             
         Returns:
-            List[Dict]: Generated examples
+            Tuple[List[Dict], Dict]: Generated examples and generation statistics
+            
+        Raises:
+            ValueError: If input parameters are invalid
         """
+        # Input validation
+        if num_examples <= 0:
+            raise ValueError("num_examples must be positive")
+        if delay < 0:
+            raise ValueError("delay must be non-negative")
+        if max_retries < 1:
+            raise ValueError("max_retries must be at least 1")
         prompt = self._create_prompt_template(domain)
         examples = []
         validator = ReasoningDatasetValidator()
@@ -252,20 +294,21 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
         return examples, generation_stats
 
 def main():
-    # Load API token from environment variable
-    api_token = os.getenv("REPLICATE_API_TOKEN")
-    if not api_token:
-        raise ValueError("Please set the REPLICATE_API_TOKEN environment variable")
-    
-    # Initialize generator
-    generator = ReasoningDatasetGenerator(api_token)
-    
-    # Generate dataset
-    num_examples = 50  # Adjust as needed
-    output_file = "reasoning_training_data.json"
-    
-    print(f"Generating {num_examples} reasoning examples...")
-    examples, stats = generator.generate_examples(num_examples, output_file)
+    try:
+        # Load API token from environment variable
+        api_token = os.getenv("REPLICATE_API_TOKEN")
+        if not api_token:
+            raise ValueError("Please set the REPLICATE_API_TOKEN environment variable")
+        
+        # Initialize generator
+        generator = ReasoningDatasetGenerator(api_token)
+        
+        # Generate dataset
+        logger.info(f"Generating {DEFAULT_NUM_EXAMPLES} reasoning examples...")
+        examples, stats = generator.generate_examples(
+            num_examples=DEFAULT_NUM_EXAMPLES,
+            output_file=DEFAULT_OUTPUT_FILE
+        )
     
     print(f"Dataset generated and saved to {output_file}")
     print(f"Generation Statistics:")
