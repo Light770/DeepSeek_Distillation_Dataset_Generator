@@ -122,16 +122,8 @@ class ReasoningDatasetGenerator:
         # API key is handled by environment variable
         self.model = DEFAULT_MODEL_NAME
         
-        # Define the output schema for structured responses
-        self.response_schemas = [
-            ResponseSchema(name="problem", description="The reasoning problem or question"),
-            ResponseSchema(name="step_by_step", description="Step-by-step reasoning process"),
-            ResponseSchema(name="final_answer", description="The final answer after reasoning"),
-            ResponseSchema(name="confidence", description="A confidence score (0-10) in the reasoning"),
-            ResponseSchema(name="verification", description="Verification of the reasoning steps")
-        ]
-        
-        self.output_parser = StructuredOutputParser.from_response_schemas(self.response_schemas)
+        # Initialize model
+        self.model = model
         
     def _generate_prompt(self, domain: str = "general") -> str:
         """Generate the complete prompt for the model."""
@@ -222,14 +214,8 @@ Your response MUST be valid JSON wrapped in ```json code blocks:
 
 Generate a single, high-quality example with careful reasoning."""
 
-        return PromptTemplate(
-            template=template,
-            input_variables=[],  # No input variables needed
-            partial_variables={
-                "domain_prompt": domain_prompts.get(domain, domain_prompts["general"]),
-                "format_guidelines": format_guidelines
-            }
-        )
+        domain_prompt = DOMAIN_PROMPTS.get(domain, DOMAIN_PROMPTS["general"])
+        return f"{template}\n\n{domain_prompt}\n\n{format_guidelines}"
     
     def _extract_and_parse_json(self, response_text: str) -> dict:
         """Extract and parse JSON with detailed error handling."""
