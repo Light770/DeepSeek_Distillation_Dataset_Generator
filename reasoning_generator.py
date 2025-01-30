@@ -4,11 +4,10 @@ import os
 import time
 from typing import List, Dict, Tuple
 
-import numpy as np
 import replicate
 from tqdm import tqdm
-from langchain.prompts import PromptTemplate
-from langchain.output_parsers import StructuredOutputParser, ResponseSchema
+
+from prompts import SYSTEM_PROMPT, DOMAIN_PROMPTS
 
 # Configure logging
 logging.basicConfig(
@@ -108,12 +107,9 @@ class ReasoningDatasetValidator:
         return metrics
 
 class ReasoningDatasetGenerator:
-    # Class variables with type hints
-    model: str
-    response_schemas: List[ResponseSchema]
-    output_parser: StructuredOutputParser
-
-    def __init__(self, api_key: str) -> None:
+    """Generates reasoning examples using the Replicate API."""
+    
+    def __init__(self, api_key: str, model: str = "deepseek-ai/deepseek-r1") -> None:
         """
         Initialize the reasoning dataset generator.
         
@@ -137,7 +133,40 @@ class ReasoningDatasetGenerator:
         
         self.output_parser = StructuredOutputParser.from_response_schemas(self.response_schemas)
         
-    def _create_prompt_template(self, domain: str = "general") -> PromptTemplate:
+    def _generate_prompt(self, domain: str = "general") -> str:
+        """Generate the complete prompt for the model."""
+        domain_prompt = DOMAIN_PROMPTS.get(domain, DOMAIN_PROMPTS["general"])
+        return f"{SYSTEM_PROMPT}\n\n{domain_prompt}"
+
+    def _parse_response(self, response_text: str) -> Dict:
+        """Parse the model's response into a structured format."""
+        try:
+            # Clean up the response text
+            response_text = response_text.strip()
+            
+            # Find JSON content
+            start = response_text.find("{")
+            end = response_text.rfind("}") + 1
+            
+            if start == -1 or end == -1:
+                raise ValueError("No JSON object found in response")
+                
+            json_str = response_text[start:end]
+            result = json.loads(json_str)
+            
+            # Validate required fields
+            required = {"problem", "steps", "answer", "confidence", "verification"}
+            missing = required - set(result.keys())
+            
+            if missing:
+                raise ValueError(f"Missing required fields: {missing}")
+                
+            return result
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON parsing failed: {str(e)}")
+            logger.debug(f"Response text:\n{response_text}")
+            raise ValueError(f"Invalid JSON response: {str(e)}")
         """Create the prompt template for generating reasoning examples."""
         domain_prompts = {
             "math": """Generate a mathematical reasoning problem that requires:
@@ -248,8 +277,59 @@ Generate a single, high-quality example with careful reasoning."""
         logger.error(f"All JSON parsing methods failed:\n{error_msg}")
         raise ValueError(f"Could not parse JSON response. Attempts failed with: {error_msg}")
 
-    def generate_examples(self, num_examples: int, output_file: str, domain: str = "general", 
-                         delay: float = DEFAULT_DELAY, max_retries: int = MAX_RETRIES) -> Tuple[List[Dict], Dict]:
+    def generate_examples(self, 
+                         num_examples: int,
+                         output_file: str,
+                         domain: str = "general",
+                         temperature: float = 0.7,
+                         max_retries: int = 3,
+                         delay: float = 1.0) -> List[Dict]:
+        """Generate reasoning examples using the model."""
+        examples = []
+        prompt = self._generate_prompt(domain)
+        
+        logger.info(f"Generating {num_examples} examples...")
+        
+        for i in tqdm(range(num_examples)):
+            for attempt in range(max_retries):
+                try:
+                    # Make API call
+                    response = replicate.run(
+                        self.model,
+                        input={
+                            "prompt": prompt,
+                            "temperature": temperature,
+                            "max_tokens": 1000,
+                            "top_p": 0.9
+                        }
+                    )
+                    
+                    # Collect response
+                    response_text = "".join(str(chunk) for chunk in response if chunk)
+                    
+                    # Parse and validate
+                    example = self._parse_response(response_text)
+                    examples.append(example)
+                    
+                    # Save progress
+                    with open(output_file, 'w') as f:
+                        json.dump(examples, f, indent=2)
+                        
+                    break  # Success - exit retry loop
+                    
+                except Exception as e:
+                    logger.error(f"Error generating example {i}, attempt {attempt + 1}: {str(e)}")
+                    if attempt == max_retries - 1:
+                        logger.error(f"Failed to generate example {i} after {max_retries} attempts")
+                    else:
+                        time.sleep(delay)
+                        continue
+            
+            # Rate limiting between examples
+            if i < num_examples - 1:
+                time.sleep(delay)
+        
+        return examples
         """Generate multiple reasoning examples with robust error handling."""
         if num_examples <= 0:
             raise ValueError("num_examples must be positive")
