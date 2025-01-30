@@ -25,10 +25,17 @@ class ReasoningDatasetValidator:
         if len(steps) < 2:
             return False, "Too few reasoning steps"
             
-        # Verify steps are properly ordered
+        # More robust step number detection
         for i, step in enumerate(steps, 1):
-            if not any(str(i) in step[:10] for i in range(1, len(steps)+1)):
-                return False, f"Step {i} not properly numbered"
+            step = step.strip()
+            if not step:
+                continue
+            # Check for various numbering formats: "1.", "1)", "Step 1:", etc.
+            valid_prefixes = [
+                f"{i}.", f"{i})", f"Step {i}:", f"({i})"
+            ]
+            if not any(step.startswith(prefix) for prefix in valid_prefixes):
+                return False, f"Step {i} not properly numbered. Should start with one of: {valid_prefixes}"
                 
         return True, ""
     
@@ -47,10 +54,12 @@ class ReasoningDatasetValidator:
                 return False, f"Missing required field: {field}"
                 
         try:
-            confidence = float(example['confidence'])
+            confidence_str = str(example['confidence']).strip()
+            # Handle potential string responses like "8 out of 10"
+            confidence = float(confidence_str.split()[0])
             if not 0 <= confidence <= 10:
-                return False, "Confidence score out of range"
-        except ValueError:
+                return False, f"Confidence score {confidence} out of range (0-10)"
+        except (ValueError, IndexError):
             return False, "Invalid confidence score format"
             
         return True, ""
@@ -133,7 +142,16 @@ class ReasoningDatasetGenerator:
             "general": """Generate a challenging problem that requires careful reasoning (math, logic, or analysis)"""
         }
         
+        format_guidelines = """
+        Important formatting requirements:
+        1. Number each reasoning step clearly (e.g., "1.", "2.", etc.)
+        2. Provide confidence score as a single number between 0-10
+        3. Ensure each step follows from the previous one
+        4. Include clear verification at the end
+        """
+        
         template = f"""Generate a training example for a reasoning model with the following components:
+        {format_guidelines}
 
 1. {domain_prompts.get(domain, domain_prompts["general"])}
 2. Provide a detailed step-by-step reasoning process
@@ -152,7 +170,7 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
         )
     
     def generate_examples(self, num_examples: int, output_file: str, domain: str = "general", 
-                         delay: float = 1.0) -> Tuple[List[Dict], Dict]:
+                         delay: float = 1.0, max_retries: int = 3) -> Tuple[List[Dict], Dict]:
         """
         Generate multiple reasoning examples and save them to a file.
         
@@ -172,14 +190,17 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
             'attempts': 0,
             'successes': 0,
             'validation_failures': 0,
-            'api_errors': 0
+            'api_errors': 0,
+            'validation_details': []
         }
         
         for _ in tqdm(range(num_examples)):
-            try:
-                # Generate example
-                system_prompt = "You are an expert reasoning assistant that breaks down problems step by step."
-                full_prompt = f"{system_prompt}\n\n{prompt.format()}"
+            retries = 0
+            while retries < max_retries:
+                try:
+                    # Generate example
+                    system_prompt = "You are an expert reasoning assistant that breaks down problems step by step."
+                    full_prompt = f"{system_prompt}\n\n{prompt.format()}"
                 
                 # Collect the streamed response
                 response_text = ""
@@ -199,8 +220,17 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
                     generation_stats['successes'] += 1
                 else:
                     generation_stats['validation_failures'] += 1
-                    print(f"Validation failed: {format_msg} {steps_msg}")
-                    continue
+                    generation_stats['validation_details'].append({
+                        'attempt': generation_stats['attempts'],
+                        'format_error': format_msg if not format_valid else None,
+                        'steps_error': steps_msg if not steps_valid else None,
+                        'raw_response': response_text[:200]  # First 200 chars for debugging
+                    })
+                    retries += 1
+                    if retries < max_retries:
+                        print(f"Validation failed, retrying ({retries}/{max_retries}): {format_msg} {steps_msg}")
+                        continue
+                    break
                 
                 # Save after each successful generation
                 generation_stats['attempts'] += 1
