@@ -243,7 +243,7 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
                     # Generate example
                     system_prompt = "You are an expert reasoning assistant that breaks down problems step by step."
                     full_prompt = f"{system_prompt}\n\n{prompt.format()}"
-                
+            
                     # Collect the streamed response
                     response_text = ""
                     for event in replicate.stream(
@@ -251,41 +251,44 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
                         input={"prompt": full_prompt}
                     ):
                         response_text += str(event)
-                
+            
                     parsed_response = self.output_parser.parse(response_text)
                     # Validate the generated example
                     format_valid, format_msg = validator.validate_format(parsed_response)
                     steps_valid, steps_msg = validator.validate_reasoning_steps(parsed_response)
+            
+                    if format_valid and steps_valid:
+                        examples.append(parsed_response)
+                        generation_stats['successes'] += 1
+                        break  # Exit retry loop on success
+                    else:
+                        generation_stats['validation_failures'] += 1
+                        generation_stats['validation_details'].append({
+                            'attempt': generation_stats['attempts'],
+                            'format_error': format_msg if not format_valid else None,
+                            'steps_error': steps_msg if not steps_valid else None,
+                            'raw_response': response_text[:200]  # First 200 chars for debugging
+                        })
+                        retries += 1
+                        if retries < max_retries:
+                            logger.warning(f"Validation failed, retrying ({retries}/{max_retries}): {format_msg} {steps_msg}")
+                            continue
                 
-                if format_valid and steps_valid:
-                    examples.append(parsed_response)
-                    generation_stats['successes'] += 1
-                else:
-                    generation_stats['validation_failures'] += 1
-                    generation_stats['validation_details'].append({
-                        'attempt': generation_stats['attempts'],
-                        'format_error': format_msg if not format_valid else None,
-                        'steps_error': steps_msg if not steps_valid else None,
-                        'raw_response': response_text[:200]  # First 200 chars for debugging
-                    })
+                except Exception as e:
+                    logger.error(f"Error generating example: {str(e)}")
+                    generation_stats['api_errors'] += 1
                     retries += 1
                     if retries < max_retries:
-                        print(f"Validation failed, retrying ({retries}/{max_retries}): {format_msg} {steps_msg}")
                         continue
                     break
-                
+            
                 # Save after each successful generation
                 generation_stats['attempts'] += 1
                 with open(output_file, 'w') as f:
                     json.dump(examples, f, indent=2)
-                
+            
                 # Rate limiting
                 time.sleep(delay)
-                
-            except Exception as e:
-                print(f"Error generating example: {str(e)}")
-                generation_stats['api_errors'] += 1
-                continue
         
         # Calculate final quality metrics
         quality_metrics = validator.calculate_quality_metrics(examples)
