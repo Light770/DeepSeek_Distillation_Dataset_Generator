@@ -229,35 +229,50 @@ Generate a single, high-quality example with careful reasoning."""
                 try:
                     # Generate example
                     system_prompt = "You are an expert reasoning assistant that breaks down problems step by step."
-                    full_prompt = prompt.format()  # Remove the extra formatting
+                    full_prompt = prompt.format()
             
-                    # Collect the streamed response
-                    response_text = ""
-                    for event in replicate.stream(
+                    # Initialize API call
+                    prediction = replicate.run(
                         self.model,
                         input={
                             "prompt": f"{system_prompt}\n\n{full_prompt}",
                             "temperature": 0.7,
-                            "max_tokens": 2000,  # Increased token limit
-                            "stop": None  # Allow complete response
+                            "max_tokens": 2000,
+                            "top_p": 0.9,
+                            "top_k": 50
                         }
-                    ):
-                        response_text += str(event)
+                    )
+                    
+                    # Collect the complete response
+                    response_text = ""
+                    for item in prediction:
+                        if item is not None:
+                            response_text += str(item)
 
                     # Clean up the response text
                     response_text = response_text.strip()
                     logger.debug(f"Raw response:\n{response_text}")
 
-                    # Extract JSON if wrapped in code blocks
-                    if "```json" in response_text:
-                        json_text = response_text.split("```json")[1].split("```")[0].strip()
-                    elif "```" in response_text:
-                        json_text = response_text.split("```")[1].split("```")[0].strip()
-                    else:
-                        json_text = response_text
+                    # Clean and extract JSON
+                    response_text = response_text.strip()
+                    logger.debug(f"Raw response:\n{response_text}")
 
                     try:
-                        # First try direct JSON parsing
+                        # Try to find JSON in the response
+                        if "```json" in response_text:
+                            json_text = response_text.split("```json")[1].split("```")[0].strip()
+                        elif "```" in response_text:
+                            json_text = response_text.split("```")[1].split("```")[0].strip()
+                        else:
+                            # Try to find JSON-like structure
+                            start_idx = response_text.find("{")
+                            end_idx = response_text.rfind("}") + 1
+                            if start_idx >= 0 and end_idx > start_idx:
+                                json_text = response_text[start_idx:end_idx]
+                            else:
+                                raise ValueError("No JSON structure found in response")
+
+                        # Parse the extracted JSON
                         parsed_response = json.loads(json_text)
                         
                         # Validate required fields
