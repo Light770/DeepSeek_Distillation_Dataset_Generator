@@ -312,18 +312,22 @@ def main():
             num_examples=DEFAULT_NUM_EXAMPLES,
             output_file=DEFAULT_OUTPUT_FILE
         )
+        
+        print(f"Dataset generated and saved to {DEFAULT_OUTPUT_FILE}")
+        print(f"Generation Statistics:")
+        print(f"- Total attempts: {stats['attempts']}")
+        print(f"- Successful generations: {stats['successes']}")
+        print(f"- Validation failures: {stats['validation_failures']}")
+        print(f"- API errors: {stats['api_errors']}")
+        print(f"\nQuality Metrics:")
+        print(f"- Format valid: {stats['format_valid_pct']:.1f}%")
+        print(f"- Steps valid: {stats['steps_valid_pct']:.1f}%")
+        print(f"- Average confidence: {stats['avg_confidence']:.1f}")
+        print(f"- Average steps: {stats['avg_steps']:.1f}")
     
-    print(f"Dataset generated and saved to {output_file}")
-    print(f"Generation Statistics:")
-    print(f"- Total attempts: {stats['attempts']}")
-    print(f"- Successful generations: {stats['successes']}")
-    print(f"- Validation failures: {stats['validation_failures']}")
-    print(f"- API errors: {stats['api_errors']}")
-    print(f"\nQuality Metrics:")
-    print(f"- Format valid: {stats['format_valid_pct']:.1f}%")
-    print(f"- Steps valid: {stats['steps_valid_pct']:.1f}%")
-    print(f"- Average confidence: {stats['avg_confidence']:.1f}")
-    print(f"- Average steps: {stats['avg_steps']:.1f}")
+    except Exception as e:
+        logger.error(f"Error in main: {str(e)}")
+        raise
 
 if __name__ == "__main__":
     main()
