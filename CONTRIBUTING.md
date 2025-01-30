@@ -86,3 +86,5 @@ This guide outlines concrete steps to contribute to the Open-R1 project, which a
 5. Share your progress and findings
 
 Remember: All contributions, whether code, documentation, or discussion, are valuable to the project's success.
+
+For detailed information about our mechanistic interpretability and cluster analysis efforts, please see [mechanistic_interpretability.md](./mechanistic_interpretability.md).
