@@ -101,7 +101,7 @@ def main():
         raise ValueError("Please set the REPLICATE_API_TOKEN environment variable")
     
     # Initialize generator
-    generator = ReasoningDatasetGenerator(api_key)
+    generator = ReasoningDatasetGenerator(api_token)
     
     # Generate dataset
     num_examples = 50  # Adjust as needed
