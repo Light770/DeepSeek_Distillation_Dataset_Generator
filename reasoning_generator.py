@@ -208,7 +208,7 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
                         self.model,
                         input={"prompt": full_prompt}
                     ):
-                    response_text += str(event)
+                        response_text += str(event)
                 
                 parsed_response = self.output_parser.parse(response_text)
                 # Validate the generated example
