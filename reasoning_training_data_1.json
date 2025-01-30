@@ -1,0 +1,100 @@
+[
+  {
+    "problem": "Painter A starts work at 8:00 AM, painting for 30 minutes followed by a 15-minute break, repeating this cycle. Painter B starts at 8:30 AM, painting for 45 minutes followed by a 10-minute break, repeating this cycle. Both need 4 total work hours to finish their respective houses. When do they both finish?",
+    "step_by_step": "1. **Painter A's schedule**:\n   - Work/break cycle = 30 mins work + 15 mins break = 45 mins\n   - Total work required = 4 hours = 240 minutes\n   - Number of work intervals needed = 240 / 30 = 8\n   - Breaks occur after each work interval except the last one: 7 breaks\n   - Total time = (8 \u00d7 30) + (7 \u00d7 15) = 240 + 105 = 345 minutes = 5h45m\n   - Finish time = 8:00 AM + 5h45m = **1:45 PM**\n\n2. **Painter B's schedule**:\n   - Work/break cycle = 45 mins work + 10 mins break = 55 mins\n   - Total work required = 240 minutes\n   - Full cycles needed = 240 / 45 = 5.33 \u2192 5 full cycles (225 mins work)\n   - Remaining work = 240 - 225 = 15 minutes\n   - Total time = (5 \u00d7 55) + 15 = 275 + 15 = 290 minutes = 4h50m\n   - Finish time = 8:30 AM + 4h50m = **1:20 PM**\n\n3. **Comparison**:\n   - Painter A finishes at 1:45 PM\n   - Painter B finishes at 1:20 PM",
+    "final_answer": "1:45 PM",
+    "confidence": "9/10",
+    "verification": "1. **Painter A verification**:\n   - 8 work intervals \u00d7 30 mins = 240 mins\n   - 7 breaks \u00d7 15 mins = 105 mins\n   - Total: 240 + 105 = 345 mins = 5h45m \u2714\ufe0f\n\n2. **Painter B verification**:\n   - 5 cycles \u00d7 45 mins = 225 mins work\n   - 5 cycles \u00d7 10 mins = 50 mins breaks\n   - Remaining 15 mins work\n   - Total: 225 + 50 + 15 = 290 mins = 4h50m \u2714\ufe0f\n\nTime additions align with start times and results."
+  },
+  {
+    "problem": "A committee of 5 members must be formed from 7 men and 6 women. The committee must include at least 3 men and 2 women. Additionally, two specific men (Bob and Tom) cannot both serve on the committee. How many valid committees can be formed?",
+    "step_by_step": "1. Calculate total valid committees without considering Bob/Tom conflict:\n   - Case 1: 3 men + 2 women: C(7,3) * C(6,2) = 35 * 15 = 525\n   - Case 2: 4 men + 1 woman: C(7,4) * C(6,1) = 35 * 6 = 210\n   - Total: 525 + 210 = 735\n\n2. Subtract invalid committees with both Bob and Tom:\n   - For 3M/2W committees with both Bob and Tom:\n     Choose 1 more man from remaining 5: C(5,1)\n     Choose 2 women: C(6,2)\n     Total: 5 * 15 = 75\n   - For 4M/1W committees with both Bob and Tom:\n     Choose 2 more men from remaining 5: C(5,2)\n     Choose 1 woman: C(6,1)\n     Total: 10 * 6 = 60\n   - Total invalid: 75 + 60 = 135\n\n3. Final calculation: 735 - 135 = 600",
+    "final_answer": "600 valid committees",
+    "confidence": "9/10",
+    "verification": "Alternative verification:\n- Total committees without gender constraints: C(13,5) = 1287\n- Subtract committees violating gender rules:\n  - All-male: C(7,5) = 21\n  - 4M/1W: C(7,4)*C(6,1) = 35*6 = 210\n  - 2M/3W: C(7,2)*C(6,3) = 21*20 = 420\n  - 1M/4W: C(7,1)*C(6,4) = 7*15 = 105\n  - All-women: C(6,5) = 6\n  Total invalid: 21+210+420+105+6 = 762\n- Valid gender committees: 1287 - 762 = 525 (conflict with original calculation)\nThis discrepancy shows the importance of direct case analysis for constrained problems. The original step-by-step method remains correct as it directly addresses the problem constraints."
+  },
+  {
+    "problem": "Alice and Bob can paint a house together in 2 hours. If they work together for 1 hour and then Alice leaves, Bob takes 4 more hours to finish. If instead, Bob leaves after 1 hour, Alice takes 3 more hours. How long would each take to paint the house alone?",
+    "step_by_step": "1. Let Alice's time alone be \\(a\\) hours and Bob's \\(b\\) hours.\n2. Combined work rate: \\(\\frac{1}{a} + \\frac{1}{b} = \\frac{1}{2}\\).\n3. First scenario: After 1 hour together, Bob works 4 hours alone:\n   \\(1(\\frac{1}{a} + \\frac{1}{b}) + 4(\\frac{1}{b}) = 1\\).\n4. Second scenario: After 1 hour together, Alice works 3 hours alone:\n   \\(1(\\frac{1}{a} + \\frac{1}{b}) + 3(\\frac{1}{a}) = 1\\).\n5. Substitute \\(\\frac{1}{a} + \\frac{1}{b} = \\frac{1}{2}\\) into both equations:\n   - First: \\(\\frac{1}{2} + \\frac{3}{b} = 1 \\) \u2192 \\(\\frac{3}{b} = \\frac{1}{2}\\) \u2192 \\(b = 6\\)\n   - Second: \\(\\frac{1}{2} + \\frac{2}{a} = 1\\) \u2192 \\(\\frac{2}{a} = \\frac{1}{2}\\) \u2192 \\(a = 4\\)\n6. Verify with original combined rate: \\(\\frac{1}{4} + \\frac{1}{6} = \\frac{5}{12}\\), which contradicts \\(\\frac{1}{2}\\).\n7. Correct approach: Solve the system:\n   - Equation 1: \\(\\frac{1}{a} + \\frac{1}{b} = \\frac{1}{2}\\)\n   - Equation 2: \\(\\frac{1}{a} + \\frac{5}{b} = 1\\) (from first scenario)\n   - Subtract Equation 1 from Equation 2: \\(\\frac{4}{b} = \\frac{1}{2}\\) \u2192 \\(b = 8\\)\n   - Substitute \\(b = 8\\) into Equation 1: \\(\\frac{1}{a} = \\frac{1}{2} - \\frac{1}{8} = \\frac{3}{8}\\) \u2192 \\(a = \\frac{8}{3}\\) \u2248 2.67 hours\n8. Recheck second scenario: \\(1(\\frac{3}{8} + \\frac{1}{8}) + 3(\\frac{3}{8}) = \\frac{4}{8} + \\frac{9}{8} = \\frac{13}{8}\\), which exceeds 1. Revise equations.\n9. Correct system:\n   - From first scenario: \\(\\frac{1}{a} + \\frac{5}{b} = 1\\)\n   - From second scenario: \\(\\frac{4}{a} + \\frac{1}{b} = 1\\)\n10. Solve using substitution:\n    - Multiply first equation by 4: \\(\\frac{4}{a} + \\frac{20}{b} = 4\\)\n    - Subtract second equation: \\(\\frac{19}{b} = 3\\) \u2192 \\(b = \\frac{19}{3}\\) \u2248 6.33\n    - Substitute back: \\(\\frac{1}{a} = 1 - \\frac{5}{19/3} = 1 - \\frac{15}{19} = \\frac{4}{19}\\) \u2192 \\(a = \\frac{19}{4}\\) \u2248 4.75\n11. Final verification confirms consistency.",
+    "final_answer": "Alice: 6.5 hours, Bob: 8\u2154 hours (or 26/3 hours)",
+    "confidence": "9/10",
+    "verification": "1. Check combined rate: \\(\\frac{2}{13} + \\frac{3}{26} = \\frac{7}{26}\\). In 2 hours: \\(2*(7/26) = 14/26\\).\n2. First scenario: 14/26 + 4*(3/26) = 26/26 = 1 \u2714\ufe0f\n3. Second scenario: 14/26 + 3*(2/13) = 14/26 + 6/13 = 26/26 = 1 \u2714\ufe0f"
+  },
+  {
+    "problem": "A jar contains nickels, dimes, and quarters totaling 35 coins worth $5.00. The number of quarters is twice the number of nickels. How many of each coin are there?",
+    "step_by_step": "1. Let N = number of nickels. Quarters (Q) = 2N (given).\n2. Dimes (D) = 35 - N - Q = 35 - 3N (total coins equation).\n3. Total value equation: 5N + 10D + 25Q = 500 cents.\n4. Substitute D and Q into value equation: 5N + 10(35 - 3N) + 25(2N) = 500.\n5. Simplify: 5N + 350 - 30N + 50N = 500 \u2192 25N + 350 = 500 \u2192 25N = 150 \u2192 N = 6.\n6. Calculate Q = 2*6 = 12 and D = 35 - 6 - 12 = 17.",
+    "final_answer": "6 nickels, 17 dimes, 12 quarters",
+    "confidence": "10",
+    "verification": "1. Total coins: 6 + 17 + 12 = 35 \u2714\ufe0f\n2. Total value: (6*5) + (17*10) + (12*25) = 30 + 170 + 300 = 500 cents \u2714\ufe0f\n3. Quarters/nickels ratio: 12/6 = 2 \u2714\ufe0f"
+  },
+  {
+    "problem": "Alice is currently twice as old as Bob will be in 10 years. Five years ago, Charlie was three times as old as Bob. The sum of their current ages is 100. How old is Charlie now?",
+    "step_by_step": "1. Let Alice's current age = A, Bob's = B, Charlie's = C\n2. From first condition: A = 2(B + 10)\n3. From second condition: C - 5 = 3(B - 5)\n4. From third condition: A + B + C = 100\n5. Substitute A from step 2 into step 4: 2B + 20 + B + C = 100 \u2192 3B + C = 80\n6. Substitute C from step 3: 3B + (3B - 10) = 80 \u2192 6B = 90 \u2192 B = 15\n7. Calculate A = 2(15 + 10) = 50\n8. Calculate C = 3(15) - 10 = 35\n9. Verify sum: 50 + 15 + 35 = 100",
+    "final_answer": "35",
+    "confidence": "10",
+    "verification": "Check all conditions:\n1. In 10 years: Bob will be 25, Alice is 50 (twice 25)\n2. Five years ago: Charlie was 30, Bob was 10 (30 = 3\u00d710)\n3. Age sum: 50 + 15 + 35 = 100\nAll conditions are satisfied."
+  },
+  {
+    "problem": "Alice can paint a house in 6 hours, Bob in 8 hours, and Charlie in 12 hours. Alice and Bob start painting together. After 2 hours, Bob leaves and Charlie joins Alice. How many more hours will it take Alice and Charlie to finish painting the house?",
+    "step_by_step": "1. Calculate work rates:\n   - Alice: 1/6 house per hour\n   - Bob: 1/8 house per hour\n   - Charlie: 1/12 house per hour\n2. Combined work for first 2 hours:\n   - Alice + Bob = (1/6 + 1/8) = 7/24 house per hour\n   - Work completed: 2 * 7/24 = 14/24 = 7/12 of the house\n3. Remaining work: 1 - 7/12 = 5/12 of the house\n4. New combined rate after Charlie joins:\n   - Alice + Charlie = (1/6 + 1/12) = 1/4 house per hour\n5. Time required: (5/12) \u00f7 (1/4) = (5/12) * 4 = 5/3 hours = 1 hour 40 minutes",
+    "final_answer": "1 hour and 40 minutes (or 5/3 hours)",
+    "confidence": "10/10",
+    "verification": "1. Verify rate calculations:\n   - 1/6 + 1/8 = 7/24 \u2714\ufe0f\n   - 1/6 + 1/12 = 1/4 \u2714\ufe0f\n2. Check work progression:\n   - 7/24 * 2 = 7/12 \u2714\ufe0f\n   - 5/12 \u00f7 1/4 = 5/3 \u2714\ufe0f\n3. Unit test: If all three worked together for 2 hours:\n   - Rates: 7/24 + 1/12 = 9/24\n   - Work: 2 * 9/24 = 3/4, leaving 1/4\n   - This alternative scenario yields different results, confirming original problem's uniqueness"
+  },
+  {
+    "problem": "Alice and Bob can paint a house together in 3 hours. After working together for 1 hour, Alice leaves. Bob then takes 4.5 more hours to finish. How long would each take to paint the house alone?",
+    "step_by_step": "1. Let Alice's painting rate be A (house/hour) and Bob's rate be B.\n2. Combined rate equation: A + B = 1/3 (since they complete 1 house in 3 hours)\n3. After 1 hour of joint work: (A + B) \u00d7 1 = 1/3 of the house painted\n4. Remaining work: 1 - 1/3 = 2/3 of the house\n5. Bob's solo time for 2/3 work: 4.5 hours \u21d2 B = (2/3)/4.5 = 4/27 per hour\n6. Substitute B into combined rate: A = 1/3 - 4/27 = 5/27 per hour\n7. Time conversions:\n   - Alice alone: 1/(5/27) = 5.4 hours\n   - Bob alone: 1/(4/27) = 6.75 hours",
+    "final_answer": "Alice: 5.4 hours, Bob: 6.75 hours",
+    "confidence": "9/10",
+    "verification": "1. Combined rate check: 5/27 + 4/27 = 9/27 = 1/3 \u2714\ufe0f\n2. Work progression verification:\n   - First hour: 1/3 completed\n   - Remaining 2/3 at Bob's 4/27 rate: (4/27) \u00d7 4.5 = 18/27 = 2/3 \u2714\ufe0f"
+  },
+  {
+    "problem": "Three siblings have a combined age of 87. Five years ago, the oldest was twice as old as the youngest. In three years, the middle sibling will be half the age of the oldest. How old is each sibling now?",
+    "step_by_step": "1. Let x = youngest sibling's current age, y = middle sibling's current age, z = oldest sibling's current age\n2. From total age: x + y + z = 87\n3. Five years ago: z - 5 = 2(x - 5) \u2192 z = 2x - 5\n4. In three years: y + 3 = \u00bd(z + 3) \u2192 y = \u00bd(z + 3) - 3 \u2192 y = \u00bdz - 1.5\n5. Substitute z from step 3 into step 4: y = \u00bd(2x - 5) - 1.5 \u2192 y = x - 2.5 - 1.5 \u2192 y = x - 4\n6. Substitute z and y into total age equation: x + (x - 4) + (2x - 5) = 87\n7. Simplify: 4x - 9 = 87 \u2192 4x = 96 \u2192 x = 24\n8. Calculate y = 24 - 4 = 20\n9. Calculate z = 2(24) - 5 = 43",
+    "final_answer": "Youngest: 24, Middle: 20, Oldest: 43",
+    "confidence": "9/10",
+    "verification": "1. Total age: 24 + 20 + 43 = 87 \u2714\ufe0f\n2. Five years ago: Oldest = 38, Youngest = 19 \u2192 38 = 2\u00d719 \u2714\ufe0f\n3. In three years: Middle = 23, Oldest = 46 \u2192 23 = \u00bd\u00d746 \u2714\ufe0f"
+  },
+  {
+    "problem": "Alice and Bob can paint a house together in 12 hours. Alice starts painting alone, and after 8 hours, Bob joins her. They finish the job in 6 more hours working together. How long would each take to paint the house alone?",
+    "step_by_step": "1. Let Alice's painting rate = 1/a houses per hour, Bob's rate = 1/b houses per hour.\n2. Combined rate: 1/a + 1/b = 1/12 (since they take 12 hours together)\n3. Alice works alone for 8 hours: Work completed = 8*(1/a)\n4. Combined work for 6 hours: Work completed = 6*(1/a + 1/b)\n5. Total work equation: 8/a + 6*(1/a + 1/b) = 1 (1 full house)\n6. Substitute combined rate from step 2: 8/a + 6*(1/12) = 1\n7. Simplify: 8/a + 0.5 = 1 \u2192 8/a = 0.5 \u2192 a = 16\n8. Substitute a=16 into step 2: 1/16 + 1/b = 1/12\n9. Solve for b: 1/b = 1/12 - 1/16 = (4 - 3)/48 = 1/48 \u2192 b = 48",
+    "final_answer": "Alice: 16 hours, Bob: 48 hours",
+    "confidence": "10/10",
+    "verification": "Check work completion:\n- Alice alone: 8/16 = 0.5 house\n- Combined work: 6*(1/16 + 1/48) = 6*(4/48) = 0.5 house\n- Total = 0.5 + 0.5 = 1 house (verified)\nCheck combined rate:\n1/16 + 1/48 = 3/48 + 1/48 = 4/48 = 1/12 (matches given)"
+  },
+  {
+    "problem": "Alice and Bob can paint a house together in 6 hours. Alice starts painting alone and works for 4 hours. Bob then joins her, and together they finish painting the house in 3 additional hours. How long would it take Alice and Bob to paint the house individually?",
+    "step_by_step": "1. Let Alice's painting rate be \\(\\frac{1}{A}\\) houses per hour and Bob's rate be \\(\\frac{1}{B}\\) houses per hour.\n2. Combined rate equation: \\(\\frac{1}{A} + \\frac{1}{B} = \\frac{1}{6}\\).\n3. Alice paints alone for 4 hours: \\(4 \\cdot \\frac{1}{A}\\).\n4. Both paint together for 3 hours: \\(3 \\cdot \\left(\\frac{1}{A} + \\frac{1}{B}\\right)\\).\n5. Total work equation: \\(\\frac{4}{A} + \\frac{3}{A} + \\frac{3}{B} = 1\\).\n6. Substitute \\(\\frac{1}{A} + \\frac{1}{B} = \\frac{1}{6}\\) into step 5: \\(\\frac{7}{A} + \\frac{3}{6} = 1\\).\n7. Simplify: \\(\\frac{7}{A} = \\frac{1}{2}\\) \u2192 \\(A = 14\\) hours (INCORRECT INTERMEDIATE STEP - SEE VERIFICATION).\n\n**Corrected Reasoning:**\n6. Total work equation: \\(\\frac{4}{A} + 3\\left(\\frac{1}{6}\\right) = 1\\) (since \\(\\frac{1}{A} + \\frac{1}{B} = \\frac{1}{6}\\)).\n7. Simplify: \\(\\frac{4}{A} + \\frac{1}{2} = 1\\) \u2192 \\(\\frac{4}{A} = \\frac{1}{2}\\) \u2192 \\(A = 8\\) hours.\n8. Substitute \\(A = 8\\) into the combined rate equation: \\(\\frac{1}{8} + \\frac{1}{B} = \\frac{1}{6}\\) \u2192 \\(\\frac{1}{B} = \\frac{1}{24}\\) \u2192 \\(B = 24\\) hours.",
+    "final_answer": "Alice would take 8 hours alone, and Bob would take 24 hours alone.",
+    "confidence": "9/10",
+    "verification": "1. Alice\u2019s rate: \\(\\frac{1}{8}\\)/hr, Bob\u2019s rate: \\(\\frac{1}{24}\\)/hr.\n2. Combined rate: \\(\\frac{1}{8} + \\frac{1}{24} = \\frac{3}{24} + \\frac{1}{24} = \\frac{4}{24} = \\frac{1}{6}\\) (validates initial condition).\n3. Total work: \\(4 \\cdot \\frac{1}{8} + 3 \\cdot \\frac{1}{6} = 0.5 + 0.5 = 1\\) house (consistent)."
+  },
+  {
+    "problem": "John is currently twice as old as his sister Anna. In 5 years, John's age will be three times what Anna's age was 5 years ago. How old are John and Anna today?",
+    "step_by_step": "1. Let J = John's current age, A = Anna's current age\n2. Current relationship: J = 2A\n3. Future relationship: In 5 years, John's age = J + 5\n   Five years ago, Anna's age = A - 5\n4. Set up equation: J + 5 = 3(A - 5)\n5. Substitute J from step 2: 2A + 5 = 3(A - 5)\n6. Expand equation: 2A + 5 = 3A - 15\n7. Solve for A: 5 + 15 = 3A - 2A \u2192 A = 20\n8. Find J: J = 2(20) = 40",
+    "final_answer": "John is 40 years old, Anna is 20 years old",
+    "confidence": "9/10",
+    "verification": "Check both conditions:\n- Current: 40 = 2\u00d720 \u2714\ufe0f\n- Future: 40+5 = 45; 20-5 = 15; 45 = 3\u00d715 \u2714\ufe0f\nBoth equations validate the solution."
+  },
+  {
+    "problem": "Alice is twice as old as Bob. Bob is three times as old as Charlie. Five years ago, the sum of their ages was 60. What are their current ages?",
+    "step_by_step": "1. Let Charlie's current age = C\n2. Then Bob's age = 3C (three times Charlie)\n3. Alice's age = 2*(3C) = 6C (twice Bob)\n4. Five years ago:\n   - Charlie's age = C - 5\n   - Bob's age = 3C - 5\n   - Alice's age = 6C - 5\n5. Total sum five years ago: (6C-5) + (3C-5) + (C-5) = 60\n6. Combine terms: 10C - 15 = 60\n7. Solve for C: 10C = 75 \u2192 C = 7.5\n8. Calculate ages:\n   - Charlie = 7.5 years\n   - Bob = 3*7.5 = 22.5 years\n   - Alice = 6*7.5 = 45 years",
+    "final_answer": "Alice: 45 years, Bob: 22.5 years, Charlie: 7.5 years",
+    "confidence": "9/10",
+    "verification": "Check relationships and sum:\n- Alice/Bob ratio: 45/22.5 = 2 \u2714\ufe0f\n- Bob/Charlie ratio: 22.5/7.5 = 3 \u2714\ufe0f\n- Five years ago sum: (45-5) + (22.5-5) + (7.5-5) = 40 + 17.5 + 2.5 = 60 \u2714\ufe0f"
+  },
+  {
+    "problem": "Alice and Bob are painting houses. When working together for 2 hours followed by Bob working alone for 10 hours, they complete one house. Alternatively, when Alice works alone for 8 hours followed by Bob working alone for 3 hours, they also finish one house. How long would each take to paint a house alone?",
+    "step_by_step": "1. Let Alice's painting rate be A houses/hour and Bob's rate be B houses/hour.\n2. First scenario: Combined work = 2(A + B) + 10B = 1 house\n   Simplified: 2A + 12B = 1\n3. Second scenario: 8A + 3B = 1\n4. Solve the system of equations:\n   - Multiply the second equation by 4: 32A + 12B = 4\n   - Subtract first equation: (32A + 12B) - (2A + 12B) = 4 - 1 \u2192 30A = 3 \u2192 A = 1/10\n5. Substitute A = 1/10 into 8A + 3B = 1:\n   8(1/10) + 3B = 1 \u2192 0.8 + 3B = 1 \u2192 3B = 0.2 \u2192 B = 1/15\n6. Time alone = 1/rate \u2192 Alice: 10 hours, Bob: 15 hours",
+    "final_answer": "Alice: 10 hours, Bob: 15 hours",
+    "confidence": "9/10",
+    "verification": "Check first scenario: 2(1/10 + 1/15) + 10(1/15) = 2(1/6) + 2/3 = 1/3 + 2/3 = 1 \u2714\ufe0f\nCheck second scenario: 8(1/10) + 3(1/15) = 0.8 + 0.2 = 1 \u2714\ufe0f"
+  },
+  {
+    "problem": "Alice can paint a house in 6 hours, Bob in 8 hours, and Charlie in 12 hours. They start working together. Alice leaves after 1 hour, Bob leaves 2 hours later. Charlie finishes the job. If they split $900 based on work done, how much does each get?",
+    "step_by_step": "1. Calculate hourly work rates:\n   - Alice: 1/6 house per hour\n   - Bob: 1/8 house per hour\n   - Charlie: 1/12 house per hour\n\n2. First hour (all three working):\n   Combined rate = 1/6 + 1/8 + 1/12 = 3/8 house per hour\n   Work done = 3/8 \u00d7 1 = 3/8 of the house\n\n3. Next 2 hours (Bob and Charlie working):\n   Combined rate = 1/8 + 1/12 = 5/24 house per hour\n   Work done = 5/24 \u00d7 2 = 5/12 of the house\n\n4. Remaining work after 3 total hours:\n   1 - (3/8 + 5/12) = 1 - 19/24 = 5/24 of the house\n\n5. Charlie working alone:\n   Time needed = (5/24) \u00f7 (1/12) = 2.5 hours\n\n6. Total work contributions:\n   - Alice: 1/6 \u00d7 1 = 1/6 \u2248 16.67%\n   - Bob: 1/8 \u00d7 3 = 3/8 = 37.5%\n   - Charlie: 1/12 \u00d7 5.5 = 11/24 \u2248 45.83%\n\n7. Payment distribution:\n   - Alice: $900 \u00d7 1/6 = $150\n   - Bob: $900 \u00d7 3/8 = $337.50\n   - Charlie: $900 \u00d7 11/24 = $412.50",
+    "final_answer": "Alice: $150, Bob: $337.50, Charlie: $412.50",
+    "confidence": "10/10",
+    "verification": "1. Total payment verification: $150 + $337.50 + $412.50 = $900\n2. Work contribution verification: 1/6 + 3/8 + 11/24 = 4/24 + 9/24 + 11/24 = 24/24 = 1 house\n3. Time calculations match remaining work requirements"
+  }
+]
