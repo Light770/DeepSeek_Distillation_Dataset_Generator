@@ -183,6 +183,15 @@ class ReasoningDatasetGenerator:
 4. Assign a confidence score (0-10) based on the reasoning reliability
 5. Include a verification step to check the reasoning
 
+IMPORTANT: Your response must be valid JSON that matches this exact format:
+{{
+    "problem": "The problem statement",
+    "step_by_step": "1. First step\\n2. Second step\\n3. Third step",
+    "final_answer": "The final answer",
+    "confidence": 8,
+    "verification": "Verification of the steps and answer"
+}}
+
 {{format_instructions}}
 
 Generate a single, high-quality example that demonstrates careful reasoning and problem-solving."""
@@ -248,11 +257,37 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
                     response_text = ""
                     for event in replicate.stream(
                         self.model,
-                        input={"prompt": full_prompt}
+                        input={
+                            "prompt": full_prompt,
+                            "temperature": 0.7,  # Add temperature to control randomness
+                            "max_tokens": 1000,  # Limit response length
+                            "stop": ["```"]  # Stop at code blocks if any
+                        }
                     ):
                         response_text += str(event)
-            
-                    parsed_response = self.output_parser.parse(response_text)
+
+                    # Clean up the response text
+                    response_text = response_text.strip()
+                    
+                    # Debug logging
+                    logger.debug(f"Raw response:\n{response_text}")
+
+                    try:
+                        # Try to parse the response
+                        parsed_response = self.output_parser.parse(response_text)
+                    except Exception as parse_error:
+                        logger.error(f"Parsing error: {str(parse_error)}")
+                        logger.debug(f"Failed to parse:\n{response_text}")
+                        # Add basic response cleaning
+                        if "```json" in response_text:
+                            # Extract JSON if it's in a code block
+                            json_text = response_text.split("```json")[1].split("```")[0]
+                            try:
+                                parsed_response = json.loads(json_text)
+                            except json.JSONDecodeError:
+                                raise ValueError("Failed to parse JSON from code block")
+                        else:
+                            raise ValueError("Invalid response format")
                     # Validate the generated example
                     format_valid, format_msg = validator.validate_format(parsed_response)
                     steps_valid, steps_msg = validator.validate_reasoning_steps(parsed_response)
@@ -276,9 +311,12 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
                 
                 except Exception as e:
                     logger.error(f"Error generating example: {str(e)}")
+                    logger.debug(f"Failed response:\n{response_text}")
                     generation_stats['api_errors'] += 1
                     retries += 1
                     if retries < max_retries:
+                        logger.info(f"Retrying ({retries}/{max_retries})...")
+                        time.sleep(delay)  # Add delay before retry
                         continue
                     break
             
