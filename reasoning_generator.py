@@ -210,10 +210,10 @@ Generate a single, high-quality example that demonstrates careful reasoning and 
                     ):
                         response_text += str(event)
                 
-                parsed_response = self.output_parser.parse(response_text)
-                # Validate the generated example
-                format_valid, format_msg = validator.validate_format(parsed_response)
-                steps_valid, steps_msg = validator.validate_reasoning_steps(parsed_response)
+                    parsed_response = self.output_parser.parse(response_text)
+                    # Validate the generated example
+                    format_valid, format_msg = validator.validate_format(parsed_response)
+                    steps_valid, steps_msg = validator.validate_reasoning_steps(parsed_response)
                 
                 if format_valid and steps_valid:
                     examples.append(parsed_response)
