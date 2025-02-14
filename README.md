@@ -4,22 +4,22 @@ A tool for generating and validating high-quality reasoning examples using large
 
 ## Overview
 
-Open-R1 is a Python-based tool that generates structured reasoning examples across multiple domains including mathematics, logic, and analytical reasoning. It uses the Replicate API to interact with language models and includes robust validation and quality control mechanisms.
+Reasoning Dataset Generator is a Python-based tool that generates structured reasoning examples across multiple domains including mathematics, logic, and analytical reasoning. It uses the Replicate API  or DeepSeek API to interact with language models and includes robust validation and quality control mechanisms.
 
 ## Features
 
 - Generate reasoning examples with step-by-step solutions
 - Multiple reasoning domains (math, logic, analysis)
-- Robust validation and quality metrics
+- Validation and quality metrics
 - JSON-formatted output
-- Comprehensive error handling and retry mechanisms
-- Detailed logging and progress tracking
+- Error handling and retry mechanisms
+- Logging and progress tracking
 
 ## Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/open-r1.git
+git clone https://github.com/Light770/DeepSeek_Distillation_Dataset_Generator.git
 cd open-r1
 
 # Create and activate virtual environment
@@ -37,6 +37,9 @@ pip install -r requirements.txt
    ```bash
    set REPLICATE_API_TOKEN=your_token_here  # On Windows
    export REPLICATE_API_TOKEN=your_token_here  # On Unix/MacOS
+
+   set DEEPSEEK_API_KEY=your_token_here  # On Windows
+   export DEEPSEEK_API_KEY=your_token_here  # On Unix/MacOS
    ```
 
 2. Configure logging and output settings in the code if needed.
