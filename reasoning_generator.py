@@ -154,21 +154,33 @@ class APIClient:
 class ReasoningDatasetGenerator:
     """Generates reasoning examples using configurable API providers."""
     
-    def __init__(self, api_key: str, provider: str = "replicate", model: str = "deepseek-ai/deepseek-r1", domain: str = "general") -> None:
+    def __init__(self, api_key: str, provider: str = "replicate", model: str = None, domain: str = "general") -> None:
         """
         Initialize the reasoning dataset generator.
         
         Args:
-            api_key (str): Replicate API token
+            api_key (str): API key for the chosen provider
+            provider (str): Provider name ("deepseek" or "replicate")
+            model (str): Model name to use (provider-specific)
+            domain (str): Reasoning domain
             
         Raises:
-            ValueError: If API token is invalid
+            ValueError: If API configuration is invalid
         """
-        # API key is handled by environment variable
-        self.model = DEFAULT_MODEL_NAME
+        self.api_key = api_key
+        self.provider = provider.lower()
         
-        # Initialize model and domain
-        self.model = model
+        # Set default model based on provider if none specified
+        if model is None:
+            if self.provider == "deepseek":
+                self.model = "deepseek-chat"
+            elif self.provider == "replicate":
+                self.model = "deepseek-ai/deepseek-r1"
+            else:
+                raise ValueError(f"Unsupported provider: {self.provider}")
+        else:
+            self.model = model
+            
         self.domain = domain
         
     def _generate_prompt(self, domain: str = "general") -> str:
@@ -508,24 +520,26 @@ Generate a single, high-quality example with careful reasoning."""
 
 def main():
     try:
-        # Check for API tokens
-        replicate_token = os.getenv("REPLICATE_API_TOKEN")
-        deepseek_token = os.getenv("DEEPSEEK_API_KEY")
+        # Configuration
+        PROVIDER = os.getenv("REASONING_PROVIDER", "replicate").lower()
         
-        if not (replicate_token or deepseek_token):
-            logger.error("Missing API tokens")
-            raise ValueError("Please set either REPLICATE_API_TOKEN or DEEPSEEK_API_KEY environment variable")
-        
-        # Select provider based on available tokens
-        if deepseek_token:
-            provider = "deepseek"
-            api_token = deepseek_token
+        # Get appropriate API key based on provider
+        if PROVIDER == "deepseek":
+            API_KEY = os.getenv("DEEPSEEK_API_KEY")
+            if not API_KEY:
+                raise ValueError("DEEPSEEK_API_KEY environment variable not set")
+        elif PROVIDER == "replicate":
+            API_KEY = os.getenv("REPLICATE_API_TOKEN")
+            if not API_KEY:
+                raise ValueError("REPLICATE_API_TOKEN environment variable not set")
         else:
-            provider = "replicate"
-            api_token = replicate_token
-        
-        # Initialize generator
-        generator = ReasoningDatasetGenerator(api_token)
+            raise ValueError(f"Unsupported provider: {PROVIDER}")
+            
+        # Initialize generator with explicit provider choice
+        generator = ReasoningDatasetGenerator(
+            api_key=API_KEY,
+            provider=PROVIDER
+        )
         
         # Verify output directory exists
         output_dir = os.path.dirname(DEFAULT_OUTPUT_FILE)
