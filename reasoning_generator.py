@@ -447,13 +447,18 @@ def main():
         print(f"Generation Statistics:")
         print(f"- Total attempts: {stats['attempts']}")
         print(f"- Successful generations: {stats['successes']}")
-        print(f"- Validation failures: {stats['validation_failures']}")
-        print(f"- API errors: {stats['api_errors']}")
+        print(f"- Validation failures: {stats.get('validation_failures', 0)}")
+        print(f"- API errors: {stats.get('api_errors', 0)}")
+        
+        # Calculate quality metrics using validator
+        validator = ReasoningDatasetValidator()
+        quality_metrics = validator.calculate_quality_metrics(examples)
+        
         print(f"\nQuality Metrics:")
-        print(f"- Format valid: {stats['format_valid_pct']:.1f}%")
-        print(f"- Steps valid: {stats['steps_valid_pct']:.1f}%")
-        print(f"- Average confidence: {stats['avg_confidence']:.1f}")
-        print(f"- Average steps: {stats['avg_steps']:.1f}")
+        print(f"- Format valid: {quality_metrics['format_valid_pct']:.1f}%")
+        print(f"- Steps valid: {quality_metrics['steps_valid_pct']:.1f}%")
+        print(f"- Average confidence: {quality_metrics['avg_confidence']:.1f}")
+        print(f"- Average steps: {quality_metrics['avg_steps']:.1f}")
     
     except Exception as e:
         logger.error(f"Error in main: {str(e)}")
