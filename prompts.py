@@ -20,10 +20,16 @@ Format your response as a JSON object with these exact fields:
 
 DOMAIN_PROMPTS = {
     "math": """Generate a mathematical problem that requires:
-- Clear numerical manipulation
+- Clear numerical or algebraic manipulation
 - Multiple solution steps
-- Mathematical concepts
-- Order of operations""",
+- Mathematical concepts from one of: Algebra, Number Theory, Geometry, Calculus
+- Can be either a word problem or MCQ format
+- Similar to problems found in math olympiads or AoPS forums
+
+Format your response to clearly separate:
+1. The problem statement
+2. Step-by-step solution
+3. Final answer in a concise format""",
     
     "logic": """Generate a logical reasoning problem with:
 - Deductive reasoning
