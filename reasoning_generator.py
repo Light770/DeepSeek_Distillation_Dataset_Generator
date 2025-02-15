@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Constants
 DEFAULT_MODEL_NAME = "deepseek-ai/deepseek-r1"
-DEFAULT_NUM_EXAMPLES = 50
+DEFAULT_NUM_EXAMPLES = 10
 DEFAULT_OUTPUT_FILE = "reasoning_training_data.json"
 DEFAULT_DELAY = 1.0
 MAX_RETRIES = 3
