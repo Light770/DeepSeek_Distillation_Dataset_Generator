@@ -92,6 +92,8 @@ open-r1/
 
 See [DEVELOPMENT.md](docs/DEVELOPMENT.md) for detailed development guidelines.
 
+There are still changes to the prompting strategy & validation techniques of the data
+
 ## Contributing
 
 Contributions are welcome! Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
@@ -108,11 +110,14 @@ Contributions are welcome! Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) f
 - Replicate API access
 - Dependencies listed in requirements.txt
 
+##
+
+
 ## License
 
 MIT License
 
-Copyright (c) 2024 Light770
+Copyright (c) 2025 Elie Annestay
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -131,9 +136,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-## Acknowledgments
-
-- DeepSeek-R1 team for inspiration
-- Replicate for API access
-- Contributors and maintainers

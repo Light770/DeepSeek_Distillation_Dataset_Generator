@@ -2,3 +2,7 @@
 .env
 venv/
 pipelines_alpha
+archive/
+# prompting_strategy.md
+reasoning_generator_V0.py
+__pycache__/
