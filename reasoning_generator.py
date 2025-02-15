@@ -4,6 +4,7 @@ import os
 import time
 import uuid
 from typing import List, Dict, Tuple, Optional
+from openai import OpenAI
 
 import numpy as np
 import replicate
@@ -108,10 +109,52 @@ class ReasoningDatasetValidator:
         
         return metrics
 
-class ReasoningDatasetGenerator:
-    """Generates reasoning examples using the Replicate API."""
+class APIClient:
+    """API client for different model providers."""
     
-    def __init__(self, api_key: str, model: str = "deepseek-ai/deepseek-r1", domain: str = "general") -> None:
+    def __init__(self, api_key: str, provider: str = "replicate"):
+        self.provider = provider
+        self.api_key = api_key
+        
+        if provider == "deepseek":
+            self.client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+        elif provider == "replicate":
+            # Replicate uses environment variable
+            os.environ["REPLICATE_API_TOKEN"] = api_key
+        else:
+            raise ValueError(f"Unsupported provider: {provider}")
+
+    async def generate(self, prompt: str, temperature: float = 0.7, max_tokens: int = 1000) -> str:
+        """Generate text using the selected API provider."""
+        if self.provider == "deepseek":
+            response = self.client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=False
+            )
+            return response.choices[0].message.content
+            
+        elif self.provider == "replicate":
+            response = replicate.run(
+                DEFAULT_MODEL_NAME,
+                input={
+                    "prompt": prompt,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                    "top_p": 0.9
+                }
+            )
+            return "".join(str(chunk) for chunk in response if chunk)
+
+class ReasoningDatasetGenerator:
+    """Generates reasoning examples using configurable API providers."""
+    
+    def __init__(self, api_key: str, provider: str = "replicate", model: str = "deepseek-ai/deepseek-r1", domain: str = "general") -> None:
         """
         Initialize the reasoning dataset generator.
         
@@ -305,19 +348,16 @@ Generate a single, high-quality example with careful reasoning."""
             
             for attempt in range(max_retries):
                 try:
-                    # Make API call
-                    response = replicate.run(
-                        self.model,
-                        input={
-                            "prompt": messages[0]["value"],
-                            "temperature": temperature,
-                            "max_tokens": 1000,
-                            "top_p": 0.9
-                        }
-                    )
+                    # Initialize API client if not already done
+                    if not hasattr(self, 'api_client'):
+                        self.api_client = APIClient(self.api_key, self.provider)
                     
-                    # Collect response
-                    response_text = "".join(str(chunk) for chunk in response if chunk)
+                    # Generate using selected API
+                    response_text = await self.api_client.generate(
+                        prompt=messages[0]["value"],
+                        temperature=temperature,
+                        max_tokens=1000
+                    )
                     
                     # Add assistant response to messages
                     messages.append({
@@ -468,11 +508,21 @@ Generate a single, high-quality example with careful reasoning."""
 
 def main():
     try:
-        # Load API token from environment variable
-        api_token = os.getenv("REPLICATE_API_TOKEN")
-        if not api_token:
-            logger.error("Missing API token")
-            raise ValueError("Please set the REPLICATE_API_TOKEN environment variable")
+        # Check for API tokens
+        replicate_token = os.getenv("REPLICATE_API_TOKEN")
+        deepseek_token = os.getenv("DEEPSEEK_API_KEY")
+        
+        if not (replicate_token or deepseek_token):
+            logger.error("Missing API tokens")
+            raise ValueError("Please set either REPLICATE_API_TOKEN or DEEPSEEK_API_KEY environment variable")
+        
+        # Select provider based on available tokens
+        if deepseek_token:
+            provider = "deepseek"
+            api_token = deepseek_token
+        else:
+            provider = "replicate"
+            api_token = replicate_token
         
         # Initialize generator
         generator = ReasoningDatasetGenerator(api_token)
