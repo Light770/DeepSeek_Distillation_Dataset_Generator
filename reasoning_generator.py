@@ -521,7 +521,7 @@ Generate a single, high-quality example with careful reasoning."""
 def main():
     try:
         # Configuration
-        PROVIDER = os.getenv("REASONING_PROVIDER", "replicate").lower()
+        PROVIDER = os.getenv("REASONING_PROVIDER", "deepseek").lower()
         
         # Get appropriate API key based on provider
         if PROVIDER == "deepseek":
