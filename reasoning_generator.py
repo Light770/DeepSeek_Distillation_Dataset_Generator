@@ -124,7 +124,7 @@ class APIClient:
         else:
             raise ValueError(f"Unsupported provider: {provider}")
 
-    async def generate(self, prompt: str, temperature: float = 0.7, max_tokens: int = 1000) -> str:
+    def generate(self, prompt: str, temperature: float = 0.7, max_tokens: int = 1000) -> str:
         """Generate text using the selected API provider."""
         if self.provider == "deepseek":
             response = self.client.chat.completions.create(
@@ -353,7 +353,7 @@ Generate a single, high-quality example with careful reasoning."""
                         self.api_client = APIClient(self.api_key, self.provider)
                     
                     # Generate using selected API
-                    response_text = await self.api_client.generate(
+                    response_text = self.api_client.generate(
                         prompt=messages[0]["value"],
                         temperature=temperature,
                         max_tokens=1000
