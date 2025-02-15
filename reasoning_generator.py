@@ -2,7 +2,8 @@ import json
 import logging
 import os
 import time
-from typing import List, Dict, Tuple
+import uuid
+from typing import List, Dict, Tuple, Optional
 
 import numpy as np
 import replicate
@@ -132,8 +133,8 @@ class ReasoningDatasetGenerator:
         domain_prompt = DOMAIN_PROMPTS.get(self.domain, DOMAIN_PROMPTS["general"])
         return f"{SYSTEM_PROMPT}\n\n{domain_prompt}"
 
-    def _parse_response(self, response_text: str) -> Dict:
-        """Parse the model's response into a structured format."""
+    def _parse_response(self, response_text: str, messages: List[Dict]) -> Dict:
+        """Parse the model's response into the required schema format."""
         try:
             # Clean up the response text
             response_text = response_text.strip()
@@ -146,16 +147,27 @@ class ReasoningDatasetGenerator:
                 raise ValueError("No JSON object found in response")
                 
             json_str = response_text[start:end]
-            result = json.loads(json_str)
+            parsed = json.loads(json_str)
             
-            # Validate required fields
-            required = {"problem", "steps", "answer", "confidence", "verification"}
-            missing = required - set(result.keys())
+            # Create new schema-compliant structure
+            example = {
+                "problem": parsed["problem"],
+                "solution": parsed["steps"],
+                "answer": parsed["answer"],
+                "problem_type": "Algebra",  # Default for math problems
+                "question_type": "math-word-problem",
+                "source": "open-r1",
+                "uuid": str(uuid.uuid4()),
+                "is_reasoning_complete": [True],  # Single generation
+                "generations": [response_text],
+                "correctness_math_verify": [True],  # Would need actual verification
+                "correctness_llama": None,  # Would need Llama verification
+                "finish_reasons": ["stop"],
+                "correctness_count": 1,
+                "messages": messages
+            }
             
-            if missing:
-                raise ValueError(f"Missing required fields: {missing}")
-                
-            return result
+            return example
             
         except json.JSONDecodeError as e:
             logger.error(f"JSON parsing failed: {str(e)}")
@@ -265,27 +277,39 @@ Generate a single, high-quality example with careful reasoning."""
         logger.error(f"All JSON parsing methods failed:\n{error_msg}")
         raise ValueError(f"Could not parse JSON response. Attempts failed with: {error_msg}")
 
-    def generate_examples(self, 
+    def generate_examples(self,
                          num_examples: int,
                          output_file: str,
-                         domain: str = "general",
+                         domain: str = "math",
                          temperature: float = 0.7,
                          max_retries: int = 3,
-                         delay: float = 1.0) -> List[Dict]:
-        """Generate reasoning examples using the model."""
+                         delay: float = 1.0) -> Tuple[List[Dict], Dict]:
+        """Generate examples with updated schema."""
         examples = []
-        prompt = self._generate_prompt(domain)
+        stats = {
+            'attempts': 0,
+            'successes': 0,
+            'validation_failures': 0,
+            'api_errors': 0
+        }
         
         logger.info(f"Generating {num_examples} examples...")
         
         for i in tqdm(range(num_examples)):
+            messages = [
+                {
+                    "from": "user",
+                    "value": self._generate_prompt(domain)
+                }
+            ]
+            
             for attempt in range(max_retries):
                 try:
                     # Make API call
                     response = replicate.run(
                         self.model,
                         input={
-                            "prompt": prompt,
+                            "prompt": messages[0]["value"],
                             "temperature": temperature,
                             "max_tokens": 1000,
                             "top_p": 0.9
@@ -295,9 +319,16 @@ Generate a single, high-quality example with careful reasoning."""
                     # Collect response
                     response_text = "".join(str(chunk) for chunk in response if chunk)
                     
-                    # Parse and validate
-                    example = self._parse_response(response_text)
+                    # Add assistant response to messages
+                    messages.append({
+                        "from": "assistant",
+                        "value": response_text
+                    })
+                    
+                    # Parse and validate with new schema
+                    example = self._parse_response(response_text, messages)
                     examples.append(example)
+                    stats['successes'] += 1
                     
                     # Save progress
                     with open(output_file, 'w') as f:
